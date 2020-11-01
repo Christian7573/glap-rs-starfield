@@ -1,7 +1,21 @@
 import { RandomContainer, RandomAreaPoint } from "./random";
+import Type_SvgRenderer from "./svg";
+
+export async function SvgRenderer(): Promise<typeof Type_SvgRenderer> { return (await import("./svg")).default; }
 
 export class Starfield {
+	chunks = new Map<string, StarfieldChunk>();
+	chunks_ordered: Starfield[] = [];
+	chunk_size: number;
+	max_chunks: number;
+	seed: string;
 
+	constructor(seed: string, chunk_size: number, max_chunks: number) {
+		this.seed = seed;
+		this.chunk_size = chunk_size;
+		this.max_chunks = max_chunks;
+	}
+	
 }
 
 export class StarfieldChunk {
