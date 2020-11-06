@@ -104,12 +104,14 @@ export class Star {
 	readonly y: number;
 	readonly size: number;
 	readonly color: number;
+	readonly kind: StarKind;
 
-	constructor(x: number, y: number, size: number, color: number) {
+	constructor(x: number, y: number, size: number, color: number, kind: StarKind) {
 		this.x = x;
 		this.y = y;
 		this.size = size;
 		this.color = color;
+		this.kind = kind;
 	}
 }
 export class NebulaFog {
@@ -120,7 +122,7 @@ export class NebulaFog {
 	color: number;
 	opacity: number;
 }
-export enum StarType {
+export enum StarKind {
 	Star,
 	TopHat, //Easter eggs go brrrrrr
 	OldLogo,
