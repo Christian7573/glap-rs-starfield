@@ -58,7 +58,7 @@ export class RandomAreaIterator implements Iterable<RandomAreaPoint> {
 			next(): IteratorResult<RandomAreaPoint> {
 				const result = new RandomAreaPoint(x, y, self.random.get_x(x), self.random.get_y(y));
 				x++;
-				if (x >= this.size_x) { x = 0; y++; }
+				if (x >= self.size_x) { x = 0; y++; }
 				return {
 					value: result,
 					done: y >= self.size_y

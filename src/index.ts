@@ -1,7 +1,5 @@
 import { RandomContainer, RandomAreaPoint } from "./random";
-import Type_SvgRenderer from "./svg";
-
-export async function SvgRenderer(): Promise<typeof Type_SvgRenderer> { return (await import("./svg")).default; }
+export { default as SvgRenderer } from "./svg";
 
 export class GlapRsStarfield {
 	foreground_layer: StarfieldLayer;
@@ -21,8 +19,10 @@ export class GlapRsStarfield {
 		new GlapRsViewspot(this, -100,  100, this.chunk_size),
 		new GlapRsViewspot(this,  100,  100, this.chunk_size)
 	];
-	update_player_position(x: number, y: number) {
-		for (const viewpoint of this.viewpoints) viewpoint.update_player_position(x, y);
+	update_player_position(x: number, y: number): boolean {
+		let return_val = false;
+		for (const viewpoint of this.viewpoints) return_val = viewpoint.update_player_position(x, y) || return_val;
+		return return_val;
 	}
 }
 export default GlapRsStarfield;
@@ -41,7 +41,7 @@ class GlapRsViewspot {
 		this.offset_y = offset_y;
 		this.chunk_size = chunk_size;
 	}
-	update_player_position(player_x: number, player_y: number) {
+	update_player_position(player_x: number, player_y: number): boolean {
 		const x = player_x + this.offset_x;
 		const y = player_y + this.offset_y;
 		const chunk_x = Math.floor(x / this.chunk_size);
@@ -52,7 +52,9 @@ class GlapRsViewspot {
 			this.starfield.foreground_layer.ensure_chunk(chunk_x, chunk_y);
 			this.starfield.middle_layer.ensure_chunk(Math.floor(chunk_x / 2), Math.floor(chunk_y / 2));
 			this.starfield.background_layer.ensure_chunk(Math.floor(chunk_x / 4), Math.floor(chunk_y / 4));
+			return true;
 		}
+		return false;
 	}
 
 }
@@ -66,6 +68,7 @@ export class StarfieldLayer {
 	generator: StarfieldChunkGenerator;
 
 	constructor(seed: string, generator: StarfieldChunkGenerator, chunk_size: number, max_chunks: number) {
+		this.seed = seed;
 		this.generator = generator;
 		this.chunk_size = chunk_size;
 		this.max_chunks = max_chunks;
@@ -74,7 +77,7 @@ export class StarfieldLayer {
 	ensure_chunk(chunk_x: number, chunk_y: number) {
 		const addr = `${chunk_x},${chunk_y}`;
 		const chunk = this.chunks.get(addr);
-		if (chunk === null) {
+		if (chunk == null) {
 			const chunk = this.generator.generate(`${addr}_${chunk_x}`, `${addr}_${chunk_y}`, 1000);
 			chunk.x = chunk_x;
 			chunk.y = chunk_y;
@@ -149,24 +152,24 @@ export class StarfieldChunkGenerator {
 
 		//Small stars
 		for (const [x, y] of this.points_above_threshold(new RandomContainer(seed_x + "_s", seed_y + "_s"), size, this.small_star_threshold)) {
-			chunk.stars.push(new Star(x, y, this.small_star_size, 0xffffff));
+			chunk.stars.push(new Star(x, y, this.small_star_size, 0xffffff, StarKind.Star));
 		}
 
 		//Medium stars
 		for (const [x, y] of this.points_above_threshold(new RandomContainer(seed_x + "_m", seed_y + "_m"), size, this.medium_star_threshold)) {
-			chunk.stars.push(new Star(x, y, this.medium_star_size, 0xffffff));
+			chunk.stars.push(new Star(x, y, this.medium_star_size, 0xffffff, StarKind.Star));
 		}
 
 		//Lage stars
 		for (const [x, y] of this.points_above_threshold(new RandomContainer(seed_x + "_l", seed_y + "_l"), size, this.large_star_threshold)) {
-			chunk.stars.push(new Star(x, y, this.large_star_size, 0xffffff));
+			chunk.stars.push(new Star(x, y, this.large_star_size, 0xffffff, StarKind.Star));
 		}
 		
 		return chunk;
 	}
 
 	points_above_threshold(random: RandomContainer, size: number, threshold: number): [number, number][] {
-		const out = [];
+		const out: [number, number][] = [];
 		for (const position of random.iter(size, size)) {
 			if (position.vx >= threshold && position.vy >= threshold) out.push([position.x, position.y]);
 		}
@@ -175,17 +178,17 @@ export class StarfieldChunkGenerator {
 
 	static foreground_layer(): StarfieldChunkGenerator {
 		const gen = new StarfieldChunkGenerator();
-		gen.small_star_threshold = 0.8;
+		gen.large_star_threshold = 0.99;
 		return gen;
 	}
 	static middle_layer(): StarfieldChunkGenerator {
 		const gen = new StarfieldChunkGenerator();
-		gen.medium_star_threshold = 0.85;
+		gen.medium_star_threshold = 0.98;
 		return gen;
 	}
 	static background_layer(): StarfieldChunkGenerator {
 		const gen = new StarfieldChunkGenerator();
-		gen.large_star_threshold = 0.9;
+		gen.small_star_threshold = 0.95;
 		return gen;
 	}
 }

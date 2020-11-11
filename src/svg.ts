@@ -1,4 +1,4 @@
-import { GlapRsStarfield, StarfieldChunk, Star, StarKind } from "./index";
+import { GlapRsStarfield, StarfieldChunk, StarfieldLayer, Star, StarKind } from "./index";
 
 export default class SvgRenderer {
 	starfield: GlapRsStarfield;
@@ -15,6 +15,9 @@ export default class SvgRenderer {
 		this.foreground_layer = document.createElementNS("http://www.w3.org/2000/svg", "g");
 		this.middle_layer = document.createElementNS("http://www.w3.org/2000/svg", "g");
 		this.background_layer = document.createElementNS("http://www.w3.org/2000/svg", "g");
+		this.root.appendChild(this.background_layer);
+		this.root.appendChild(this.middle_layer);
+		this.root.appendChild(this.foreground_layer);
 		this.chunk_size = chunk_size;
 	}
 
@@ -22,47 +25,29 @@ export default class SvgRenderer {
 		this.foreground_layer.style.transform = `translate(${-x}px, ${y}px)`;
 		this.middle_layer.style.transform = `translate(${-x / 2}px, ${-y / 2}px)`;
 		this.background_layer.style.transform = `translate(${-x / 4}px, ${-y / 4}px)`;
+		if (this.starfield.update_player_position(x, y)) this.update_chunks();
 	}
 
 	update_chunks() {
-		const to_delete = [];
+		const to_delete: StarfieldChunk[] = [];
 		for (const chunk of this.rendered_chunks.keys()) to_delete.push(chunk);
-		
-		for (const chunk of this.starfield.foreground_layer.chunks.values()) {
-			const i = to_delete.indexOf(chunk);
-			if (i < 0) {
-				const rendered_chunk = this.render_chunk(chunk);
-				rendered_chunk.style.transform = `translate(${chunk.x * this.chunk_size}px, ${chunk.y * this.chunk_size}px)`;
-				this.rendered_chunks.set(chunk, rendered_chunk);
-				this.foreground_layer.appendChild(rendered_chunk);
-			} else {
-				to_delete.splice(i, 1);
-			}
-		}
 
-		for (const chunk of this.starfield.middle_layer.chunks.values()) {
-			const i = to_delete.indexOf(chunk);
-			if (i < 0) {
-				const rendered_chunk = this.render_chunk(chunk);
-				rendered_chunk.style.transform = `translate(${chunk.x * this.chunk_size * 2}px, ${chunk.y * this.chunk_size * 2}px)`;
-				this.rendered_chunks.set(chunk, rendered_chunk);
-				this.middle_layer.appendChild(rendered_chunk);
-			} else {
-				to_delete.splice(i, 1);
+		const update_layer = (layer: StarfieldLayer, rendering_layer: SVGGElement) => {
+			for (const chunk of layer.chunks.values()) {
+				const i = to_delete.indexOf(chunk);
+				if (i < 0) {
+					const rendered_chunk = this.render_chunk(chunk);
+					rendered_chunk.style.transform = `translate(${chunk.x * this.chunk_size}px, ${chunk.y * this.chunk_size}px)`;
+					this.rendered_chunks.set(chunk, rendered_chunk);
+					rendering_layer.appendChild(rendered_chunk);
+				} else {
+					to_delete.splice(i, 1);
+				}
 			}
 		}
-
-		for (const chunk of this.starfield.background_layer.chunks.values()) {
-			const i = to_delete.indexOf(chunk);
-			if (i < 0) {
-				const rendered_chunk = this.render_chunk(chunk);
-				rendered_chunk.style.transform = `translate(${chunk.x * this.chunk_size * 4}px, ${chunk.y * this.chunk_size * 4}px)`;
-				this.rendered_chunks.set(chunk, rendered_chunk);
-				this.background_layer.appendChild(rendered_chunk);
-			} else {
-				to_delete.splice(i, 1);
-			}
-		}
+		update_layer(this.starfield.foreground_layer, this.foreground_layer);
+		update_layer(this.starfield.middle_layer, this.middle_layer);
+		update_layer(this.starfield.background_layer, this.background_layer);
 	}
 
 	render_chunk(chunk: StarfieldChunk): SVGGElement {

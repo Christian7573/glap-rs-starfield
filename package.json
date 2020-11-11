@@ -21,9 +21,15 @@
   },
   "devDependencies": {
     "@types/seedrandom": "^2.4.28",
-    "typescript": "^4.0.5"
+    "ts-loader": "^8.0.11",
+    "typescript": "^4.0.5",
+    "webpack-cli": "^4.2.0"
   },
   "dependencies": {
-    "seedrandom": "^3.0.5"
+    "seedrandom": "^3.0.5",
+    "webpack": "^5.4.0"
+  },
+  "scripts": {
+    "build": "webpack"
   }
 }

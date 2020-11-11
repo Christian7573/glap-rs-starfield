@@ -19,4 +19,5 @@ module.exports = {
 	  filename: 'bundle.js',
     path: path.resolve(__dirname, 'test'),
   },
+	optimization: { minimize: false },
 };
