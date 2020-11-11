@@ -78,7 +78,7 @@ export class StarfieldLayer {
 		const addr = `${chunk_x},${chunk_y}`;
 		const chunk = this.chunks.get(addr);
 		if (chunk == null) {
-			const chunk = this.generator.generate(`${addr}_${chunk_x}`, `${addr}_${chunk_y}`, 1000);
+			const chunk = this.generator.generate(`${this.seed}_${addr}_${chunk_x}_x`, `${this.seed}_${addr}_${chunk_y}_y`, 1000);
 			chunk.x = chunk_x;
 			chunk.y = chunk_y;
 			this.chunks.set(addr, chunk);

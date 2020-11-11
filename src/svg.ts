@@ -62,7 +62,7 @@ export default class SvgRenderer {
 					rect.setAttribute("y", (star.y - half_size) as any);
 					rect.setAttribute("width", star.size as any);
 					rect.setAttribute("height", star.size as any);
-					rect.setAttribute("transform", `rotate(${Math.floor(Math.random() * 360)})`);
+					//rect.setAttribute("transform", `rotate(${Math.floor(Math.random() * 360)})`);
 					rect.setAttribute("fill", "#" + star.color.toString(16));
 					out.appendChild(rect);
 				}; break;
