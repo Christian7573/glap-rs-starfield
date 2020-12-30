@@ -14,5 +14,16 @@ windowx.renderer = renderer;
 
 renderer.update_player_position(0,0);
 
+function animate() {
+	let x = 0;
+	let y = 0;
+	setInterval(function() {
+		x += 0.5;
+		y += 0.2;
+		renderer.update_player_position(x, y);
+	}, 1000/20);
+}
+windowx.animate = animate;
+
 
 console.log("Reached EOF");

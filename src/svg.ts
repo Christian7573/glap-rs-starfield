@@ -22,7 +22,7 @@ export default class SvgRenderer {
 	}
 
 	update_player_position(x: number, y: number) {
-		this.foreground_layer.style.transform = `translate(${-x}px, ${y}px)`;
+		this.foreground_layer.style.transform = `translate(${-x}px, ${-y}px)`;
 		this.middle_layer.style.transform = `translate(${-x / 2}px, ${-y / 2}px)`;
 		this.background_layer.style.transform = `translate(${-x / 4}px, ${-y / 4}px)`;
 		if (this.starfield.update_player_position(x, y)) this.update_chunks();
@@ -58,12 +58,16 @@ export default class SvgRenderer {
 				case StarKind.Star: {
 					const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
 					const half_size = star.size / 2;
-					rect.setAttribute("x", (star.x - half_size) as any);
-					rect.setAttribute("y", (star.y - half_size) as any);
+					const svg_x = star.x - half_size;
+					const svg_y = star.y - half_size;
+					rect.setAttribute("x", svg_x as any);
+					rect.setAttribute("y", svg_y as any);
 					rect.setAttribute("width", star.size as any);
 					rect.setAttribute("height", star.size as any);
-					rect.setAttribute("transform", `rotate(${Math.floor(Math.random() * 360)})`);
-					rect.setAttribute("fill", "#" + star.color.toString(16));
+					rect.setAttribute("transform", `rotate(${Math.floor(Math.random() * 360)} ${star.x} ${star.y})`);
+					let fill = star.color.toString(16);
+					while (fill.length < 6) fill = "0" + fill;
+					rect.setAttribute("fill", "#" + fill);
 					out.appendChild(rect);
 				}; break;
 
