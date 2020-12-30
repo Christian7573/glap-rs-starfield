@@ -1,4 +1,5 @@
-import { RandomContainer, RandomAreaPoint } from "./random";
+//import { RandomContainer, RandomAreaPoint } from "./random";
+import Noise from "./perlin";
 export { default as SvgRenderer } from "./svg";
 
 export class GlapRsStarfield {
@@ -131,6 +132,34 @@ export enum StarKind {
 	OldLogo,
 }
 
+function perlin_iterator(noise: Noise, start_x: number, start_y: number, width: number, height: number): Iterable<[number, number, number]> {
+	if (width < 0) start_x -= width - 1;
+	if (height < 0) start_y -= height - 1;
+	const end_x = start_x + width;
+	const end_y = start_y + height;
+	return {
+		[Symbol.iterator]() {
+			let x = start_x;
+			let y = start_y;
+			return {
+				next() {
+					const return_val: [number, number, number] = [x, y, noise.perlin2(x, y)];
+					x++;
+					if (x >= end_x) y++;
+					return {
+						value: return_val,
+						done: y >= end_y
+					};
+				}
+			};
+		}
+	};
+}
+
+export const SmallStarSize = 3;
+export const MediumStarSize = 6;
+export const LargeStarSize = 15;
+
 
 export class StarfieldChunkGenerator {
 	/*tophat_threshold = 0.95;
@@ -147,8 +176,14 @@ export class StarfieldChunkGenerator {
 	medium_star_size = 8;
 	large_star_size = 15;
 
-	generate(seed_x: string, seed_y: string, size: number): StarfieldChunk {
+	generate(noises: Noise[], chunk_x: number, chunk_y: number, chunk_size: number): StarfieldChunk {
 		const chunk = new StarfieldChunk();
+		chunk.x = chunk_x;
+		chunk.y = chunk_y;
+		const base_x = chunk_x * chunk_size;
+		const base_y = chunk_y * chunk_size;
+		
+		
 
 		//Small stars
 		for (const [x, y] of this.points_above_threshold(new RandomContainer(seed_x + "_s", seed_y + "_s"), size, this.small_star_threshold)) {
@@ -168,13 +203,24 @@ export class StarfieldChunkGenerator {
 		return chunk;
 	}
 
-	points_above_threshold(random: RandomContainer, size: number, threshold: number): [number, number][] {
+/*	points_above_threshold(random: RandomContainer, size: number, threshold: number): [number, number][] {
 		const out: [number, number][] = [];
 		for (const position of random.iter(size, size)) {
 			if (position.vx >= threshold && position.vy >= threshold) out.push([position.x, position.y]);
 		}
 		return out;
-	}
+	}*/
+
+/*   	points_above_threshold(source: Iterable<[number, number, number]>, threshold: number): Iterable<[number, number]> {
+		return {
+			[Symbol.iterator]() {
+				const iter = source[Symbol.iterator]();
+				let next = null;
+				function get_next() {
+					while (true) {
+						const val = iter.next();
+						if (val.value[2] >= threshold) {
+	}*/
 
 	static foreground_layer(): StarfieldChunkGenerator {
 		const gen = new StarfieldChunkGenerator();
