@@ -44,71 +44,145 @@ export function populate_with_branch(rng: MyRandom, kinds: ObjKind[], branch_con
 	}
 }
 
-export class StarfieldChunkGenerator {
-   	max_tophats = 0;
-	max_small_stars = 0;
-	max_medium_stars = 0;
-	max_large_stars = 0;
-	forced_small_stars = 0;
-	forced_medium_stars = 0;
-	forced_large_stars = 0;
+const stars = [ObjKind.Square, ObjKind.Triangle, ObjKind.WackTriangle];
+const star_colors = {
+	white: 0xffffff,
+	yellow: 0xfdffbc,
+	yellow_orange: 0xffeebb,
+	orange: 0xffdcb8,
+	red: 0xffc1b6,
+	blue: 0x6cf3f5,
+};
 
-	small_star_size = 8 / 30;
-	medium_star_size = 10 / 30;
-	large_star_size = 15 / 30;
+export function foreground_layer(rng: MyRandom, max_pos: number, output: OutputFunc) {
+	const foreground_colors: number[] = [
+		star_colors.white, star_colors.white, star_colors.white,
+		star_colors.yellow, star_colors.yellow,
+		star_colors.yellow_orange, star_colors.yellow_orange,
+		star_colors.orange,
+		star_colors.red,
+		star_colors.blue
+	];
 
-	random: MyRandom;
-	size: number;
-	max_skip = 5;
+	populate_with_randomly(rng, stars, [1000, 2000], [0.4, 0.6], foreground_colors, max_pos, output);
+}
 
-	generate(random: MyRandom, size: number): StarfieldChunk {
-		this.random = random;
-		this.chunk = new StarfieldChunk();
-		this.size = size;
+export function middle_layer(rng: MyRandom, max_pos: number, output: OutputFunc) {
+	const middle_colors: number[] = [
+		star_colors.white, star_colors.white,
+		star_colors.yellow,
+		star_colors.yellow_orange, star_colors.yellow_orange,
+		star_colors.orange, star_colors.orange,
+		star_colors.red,
+		star_colors.blue, star_colors.blue,
+	];
 
-		this.add_stars(this.max_small_stars, this.forced_small_stars, this.small_star_size, 0xffdad4, StarKind.Star);
-		this.add_stars(this.max_medium_stars, this.forced_medium_stars, this.medium_star_size, 0xffffd4, StarKind.Star);
-		this.add_stars(this.max_large_stars, this.forced_large_stars, this.large_star_size, 0xffffff, StarKind.Star);
-		
-		return this.chunk;
+	populate_with_randomly(rng, stars, [5000,10000], [0.2, 0.5], middle_colors, max_pos, output);
+}
+
+export function background_layer(rng: MyRandom, max_pos: number, output: OutputFunc) {
+	const background_colors: number[] = [
+		star_colors.white, star_colors.white, star_colors.white,
+		star_colors.yellow,
+		star_colors.yellow_orange, star_colors.yellow_orange,
+		star_colors.orange,
+		star_colors.red, star_colors.red, star_colors.red,
+		star_colors.blue, star_colors.blue,
+	];
+
+	populate_with_randomly(rng, stars, [30000, 60000], [0.05, 0.3], background_colors, max_pos, output);
+}
+
+enum TileLayer {
+	Foreground,
+	Middle,
+	Background,
+};
+
+export abstract class Starfield {
+	seed: string;
+	load_range: number = 200;
+
+	foreground_tile_size: number;
+	foreground_tiles: string[] = [];
+	foreground_tile_count: number = 6;
+	middle_tile_size: number;
+	middle_tiles: string[] = [];
+	middle_tile_count: number = 6;
+	background_tile_size: number;
+	background_tiles: string[] = [];
+	background_tile_count = 6;
+
+	constructor(seed: string, foreground_tile_size: number, middle_tile_size: number, background_tile_size: number) {
+		this.seed = seed;
+		this.foreground_tile_size = foreground_tile_size;
+		this.middle_tile_size = middle_tile_size;
+		this.background_tile_size = background_tile_size;
 	}
 
-	add_stars(max_stars: number, forced_stars: number, size: number, color: number, kind: StarKind) {
-		const stars = Math.round(this.random() * max_stars) + forced_stars;
-		for (let i = 0; i < stars; i++) {
-			const x = Math.round(this.random() * this.size);
-			const y = Math.round(this.random() * this.size);
-			this.chunk.stars.push(new Star(x, y, size, color, kind));
+	abstract output_func(): OutputFunc;
+	abstract flush_outputs_to_tile(id: string, tile_layer: TileLayer, tile_x: number, tile_y: number): void;
+	abstract drop_tile(id: string): void;
 
-			const skip_count = Math.round(this.random() * this.max_skip);
-			for (let i = 0; i < skip_count; i++) this.random();
+	update_player_position(x: number, y: number) {
+		const load_points = [
+			[x - this.load_range, y - this.load_range],
+			[x + this.load_range, y - this.load_range],
+			[x - this.load_range, y + this.load_range],
+			[x + this.load_range, y + this.load_range]
+		];
+		for (const load_point of load_points) {
+			this.ensure_chunk(Math.floor(load_point[0] / this.foreground_tile_size), Math.floor(load_point[1] / this.foreground_tile_size), TileLayer.Foreground);
+			this.ensure_chunk(Math.floor(load_point[0] / this.middle_tile_size), Math.floor(load_point[1] / this.middle_tile_size), TileLayer.Middle);
+			this.ensure_chunk(Math.floor(load_point[0] / this.background_tile_size), Math.floor(load_point[1] / this.background_tile_size), TileLayer.Background);
 		}
+		this.update_viewport(x, y);
+	}
+	abstract update_viewport(x: number, y: number): void;
+
+	tile_id(x: number, y: number, layer: TileLayer): string {
+		return `${layer}_${x}_${y}`;
 	}
 
-	points_above_threshold(random: RandomContainer, size: number, threshold: number): [number, number][] {
-		const out: [number, number][] = [];
-		for (const position of random.iter(size, size)) {
-			if (position.vx >= threshold && position.vy >= threshold) out.push([position.x, position.y]);
+	ensure_chunk(x: number, y: number, layer: TileLayer) {
+		let tiles: string[];
+		let tile_size: number;
+		let tile_count: number;
+		switch (layer) {
+			case TileLayer.Foreground:
+				tiles = this.foreground_tiles;
+				tile_size = this.foreground_tile_size;
+				tile_count = this.foreground_tile_count;
+				break;
+			case TileLayer.Middle:
+				tiles = this.middle_tiles;
+				tile_size = this.middle_tile_size;
+				tile_count = this.middle_tile_count;
+				break;
+			case TileLayer.Background:
+				tiles = this.background_tiles;
+				tile_size = this.background_tile_size;
+				tile_count = this.background_tile_count;
+				break;
+			default: throw new Error();
 		}
-		return out;
-	}
 
-	static foreground_layer(): StarfieldChunkGenerator {
-		const gen = new StarfieldChunkGenerator();
-		gen.max_large_stars = 1000;
-		gen.forced_large_stars = 1000;
-		return gen;
-	}
-	static middle_layer(): StarfieldChunkGenerator {
-		const gen = new StarfieldChunkGenerator();
-		gen.max_medium_stars = 5000;
-		gen.forced_medium_stars = 5000;
-		return gen;
-	}
-	static background_layer(): StarfieldChunkGenerator {
-		const gen = new StarfieldChunkGenerator();
-		gen.max_small_stars = 30000;
-		gen.forced_small_stars = 30000;
-		return gen;
+		const tile_id = this.tile_id(x, y, layer);
+		const tile_index = tiles.indexOf(tile_id);
+		if (tile_index < 0) {
+			let generation_func;
+			switch (layer) {
+				case TileLayer.Foreground: generation_func = foreground_layer; break;
+				case TileLayer.Middle: generation_func = middle_layer; break;
+				case TileLayer.Background: generation_func = background_layer; break;
+				default: throw new Error();
+			}
+			const seed = `${this.seed}_${tile_id}`;
+			const output = this.output_func();
+			generation_func(seedrandom(seed), tile_size, output);
+			this.flush_outputs_to_tile(tile_id, x, y, layer);
+			tiles.push(tile_id);
+			if (tiles.length > tile_count) this.drop_tile(tiles.shift());
+		}
 	}
 }
